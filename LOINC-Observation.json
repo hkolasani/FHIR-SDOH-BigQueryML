@@ -1,0 +1,65 @@
+{
+    "resourceType": "Bundle",
+    "type": "transaction",
+    "entry": [
+        {
+            "resource": {
+                "resourceType": "Observation",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "82589-3",
+                            "display": "Highest level of education",
+                            "system": "http://loinc.org"
+                        }
+                    ],
+                    "text": "Highest level of education"
+                },
+                "status": "final",
+                "subject": {
+                    "reference": "Patient/6f7acde5-db81-4361-82cf-886893a3280c"
+                },
+                "valueCodeableConcept": {
+                    "coding": [
+                        {
+                            "code": "LA38-5",
+                            "display": "High school",
+                            "system": "http://loinc.org"
+                        }
+                    ],
+                    "text": "High school"
+                }
+            }
+        },
+        {
+            "resource": {
+                "resourceType": "Observation",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "67875-5",
+                            "display": "Employment status current",
+                            "system": "http://loinc.org"
+                        }
+                    ],
+                    "text": "Highest level of education"
+                },
+                "status": "final",
+                "subject": {
+                    "reference": "Patient/6f7acde5-db81-4361-82cf-886893a3280c"
+                },
+                "valueCodeableConcept": {
+                    "coding": [
+                        {
+                            "code": "LA17956-6",
+                            "display": "Unemployed",
+                            "system": "http://loinc.org"
+                        }
+                    ],
+                    "text": "Unemployed"
+                }
+            }
+        }
+    ]
+}
+
