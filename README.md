@@ -32,7 +32,7 @@ WHERE
 ## SDOH Data
 Conditions in the places where people live, learn, work, and play affect a wide range of health risks and outcomes. These conditions are known as social determinants of health (SDOH). 
 
-Along with patient data like age, race, marital status, we'll be using SDOH factors like employment, food insecurity and transportation as some of features for predicting prediabetes. Ideally, the SDOH risk factors are compiled by collecting this information from the patient and associate them with their record. [The Gravity Project](https://www.hl7.org/gravity/) is building an interoperable data standard based on HL7 FHIR for representing SDOH related data for screening, diagnosis, planning, and interventions.  The process of generating SDOH data as FHIR resources involves, Generating a FHIR Questionnaire for a specific LOINC panel like [Money and resources [PRAPARE]](https://loinc.org/93041-2/) and use the QuestionnaireResponse to build an Observation:
+Along with patient data like age, race, marital status, we'll be using SDOH factors like employment, food insecurity and transportation as some of features for predicting prediabetes. Ideally, the SDOH risk factors are compiled by collecting this information from the patient and associate them with their record. [The Gravity Project](https://www.hl7.org/gravity/) is building an interoperable data standard based on HL7 FHIR for representing SDOH related data for screening, diagnosis, planning, and interventions.  The process of generating SDOH data as FHIR resources involves, Generating a FHIR Questionnaire for a specific LOINC panel like [Money and resources [PRAPARE]](https://loinc.org/93041-2/) and use the QuestionnaireResponse to build an [Observation](/LOINC-Observation.json). 
 
 ```
 {
@@ -130,7 +130,7 @@ STRUCT(
 ```
 The end goal in this data prep is to have a single Patient record that contains the demographics data like age, race, sex and the SDOH factors. The LOINC code for the question like [93031-3](https://loinc.org/93031-3/) will be used as a column name and the answer/observation_value_code like 'LA30125-1' will be used as the column value on the Patient record.
 
-If you really want to build the data the right way, you can use this [Form Builder for FHIR Questionnaire](https://lhcformbuilder.nlm.nih.gov/) that generates Questionnaire for LOINC panels like [Money and resources [PRAPARE]](https://loinc.org/93041-2/).
+If you really want to build the data the right way, you can use this [Form Builder for FHIR Questionnaire](https://lhcformbuilder.nlm.nih.gov/) that generates Questionnaire for LOINC panels like [Money and resources [PRAPARE]](https://loinc.org/93041-2/). Here is a sample [Questionnaire](//Questionnaire%20-%20Money%20and%20resources%20%5B93041-2%5D.json) generated and used as the basis for the SDOH factors in this.
 
 For now, let's just cook up some data like this:
 ```
