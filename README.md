@@ -261,7 +261,18 @@ FROM
      )
   )
 ```
-Below are sample results from above prediction run. 
+whola! Below are sample results from above prediction run. 
 ![GitHub Logo](/images/prediction.png)
+## Summary
+Here are different steps in building this: 
 
-closing notes: not accurate.. needs more sampleing , realstinc questionnaire data
+ 1. Identify and prepare the data source: [Synthea Synthetic Patient FHIR data](https://synthetichealth.github.io/synthea/) 
+ 2. Enrich Patient data with SDOH factors by leveraging Gravity/LOINC questionnaire and manufactured Observations. [Money and resources [PRAPARE]](https://loinc.org/93041-2/)
+ 3. Create and train a Logistic Regression model with BigQuery ML
+ 4. Evaluate the model using a subset of the generated data
+ 5. Run Prediction
+
+As mentioned above, please note that we generated SDOH data in a random manner which may not produce accurate predictions.  The idea of this is to show the whole pipeline of data prep (with SDOH) and using BigQuery ML.
+
+Hope this will be helpful for BigQUery ML enthusiasts who wants to leverage the technology to solve some of lingering problems in Healthcare!
+
