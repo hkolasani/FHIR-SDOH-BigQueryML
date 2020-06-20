@@ -1,142 +1,192 @@
-## Predict Diabetes with Google BigQuery ML using FHIR SDOH Data!
-Hi! I'm your first Markdown file in **StackEdit**. If you want to learn about StackEdit, you can read me. If you want to play with Markdown, you can edit me. Once you have finished with me, you can create new files by opening the **file explorer** on the left corner of the navigation bar.
+## Predicting Prediabetes with BigQuery ML using FHIR and SDOH data
+This repo mainly contains a [jupyter notebook](https://github.com/hkolasani/FHIR-SDOH-BigQueryML/blob/master/SDOH-ML.ipynb) that builds a [Binary Logistic Regression](https://towardsdatascience.com/implementing-binary-logistic-regression-in-r-7d802a9d98fe) model using BIGQueryML to predict diabetes for a population of FHIR patient data that is augmented by SDOH factors such as food and transportation. 
 
+## BigQuery ML and Binary Logistic Regression Model
+You can use the binary logistic regression model to predict whether a value falls into one of two categories. A common problem in machine learning is to classify data into one of two types, known as labels. In this case, we may want to predict whether a given patient will be prediabetic or not , based on other information about that patient. The two labels will be "prediabetic" and "not prediabetic".  The input dataset needs to be built such that one column represents the label. 
 
-# Files
+[Google's BigQuery ML](https://cloud.google.com/bigquery-ml/docs/bigqueryml-intro) enables users to create and execute machine learning models in BigQuery using standard SQL queries. BigQuery ML supports supervised learning  with the [logistic regression](https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create#model_type) model type.
 
-StackEdit stores your files in your browser, which means all your files are automatically saved locally and are accessible **offline!**
+## Patient Data - Synthea FHIR 
+The primary dataset that's used in this exercise is from [Synthea Synthetic Patient FHIR data](https://synthetichealth.github.io/synthea/) which contains around ~1M Patient resources and their related Conditions and Observations. This data is available in BigQuery as a public data set. 
 
-## Create files and folders
+The Patient data is joined with Conditions data to append the column "prediabetic" (true/false) along with Patient's age, sex, rece, marital status and zip.
+```
+SELECT 
+      IFNULL(P.address[SAFE_OFFSET(0)].postalCode, "") AS zip,
+	  sdohml.calculateAge(PARSE_DATE('%Y-%m-%d',  P.birthDate)) age, 
+      P.gender sex,
+      P.us_core_race.text.value.string race,
+      P.maritalStatus.coding[SAFE_OFFSET(0)].code maritalStatus,
+      sdohml.prediabeticcheck(coding.code) prediabetic
+FROM 
+      bigquery-public-data.fhir_synthea.condition  C, 
+      UNNEST(C.code.coding) coding
+JOIN 
+      bigquery-public-data.fhir_synthea.patient P
+ON 
+      C.subject.patientId = P.id
+WHERE 
+      C.verificationstatus = 'confirmed' AND
+      coding.system = 'http://snomed.info/sct'
+```
+## SDOH Data
+Conditions in the places where people live, learn, work, and play affect a wide range of health risks and outcomes. These conditions are known as social determinants of health (SDOH). 
 
-The file explorer is accessible using the button in left corner of the navigation bar. You can create a new file by clicking the **New file** button in the file explorer. You can also create folders by clicking the **New folder** button.
+Along with patient data like age, race, marital status, we'll be using SDOH factors like employment, food insecurity and transportation as some of features for predicting prediabetes. Ideally, the SDOH risk factors are compiled by collecting this information from the patient and associate them with their record. [The Gravity Project](https://www.hl7.org/gravity/) is building an interoperable data standard based on HL7 FHIR for representing SDOH related data for screening, diagnosis, planning, and interventions.  The process of generating SDOH data as FHIR resources involves, Generating a FHIR Questionnaire for a specific LOINC panel like [Money and resources [PRAPARE]](https://loinc.org/93041-2/) and use the QuestionnaireResponse to build an Observation:
 
-## Switch to another file
+```
+{
+    "resourceType": "Observation",
+    "code": {
+        "coding": [
+            {
+                "code": "82589-3",
+                "display": "Highest level of education",
+                "system": "http://loinc.org"
+            }
+        ],
+        "text": "Highest level of education"
+    },
+    "status": "final",
+    "subject": {
+        "reference": "Patient/6f7acde5-db81-4361-82cf-886893a3280c"
+    },
+    "valueCodeableConcept": {
+        "coding": [
+            {
+                "code": "LA38-5",
+                "display": "High school",
+                "system": "http://loinc.org"
+            }
+        ],
+        "text": "High school"
+    }
+}
+```
+For now, we'll just generate random responses to [Money and resources [PRAPARE]](https://loinc.org/93041-2/)  questions and bypass the creation of Observations and just append the answers/observations to out Patient data. The following view is used for generating random responses for the questions. Ideally this data should come from the Observations that were created based on the QuestionnaireResponses. 
+```
+CREATE OR REPLACE VIEW 
+`sdohml.sdoh_questions` AS
+SELECT 
+STRUCT( 
+    STRUCT("82589-3" as code, "Highest level of education" as display) as question, 
+    4 as noOfAnswers,
+    [
+        STRUCT("LA30191-3" AS code,"More than high school degree" as display),
+        STRUCT("LA30192-1" AS code,"High school diploma or GED" as display),
+        STRUCT("LA30193-9" AS code,"Less than high school degree" as display),
+        STRUCT("LA30122-8" AS code,"I choose not to answer this question" as display)
+    ] as answers
+) as questionSet
+UNION ALL
+SELECT 
+STRUCT( 
+    STRUCT("67875-5" as code, "Employment status current" as display) as question, 
+    4 as noOfAnswers,
+    [
+        STRUCT("LA17956-6" AS code,"Unemployed" as display),
+        STRUCT("LA30138-4" AS code,"Part-time or temporary work" as display),
+        STRUCT("LA30136-8" AS code,"Full-time work" as display),
+        STRUCT("LA30137-6" AS code,"Otherwise unemployed but not seeking work (ex: student, retired, disabled, unpaid primary care giver)" as display)
+    ] as answers
+) as questionSet
+UNION ALL
+SELECT 
+STRUCT( 
+    STRUCT("63058-2" as code, "Annual Familty Income?" as display) as question, 
+    2 as noOfAnswers,
+    [
+        STRUCT("LA15627-5" AS code,"Less than $50,000" as display),
+        STRUCT("LA15628-3" AS code,"$50,000 or more" as display)
+    ] as answers
+) as questionSet
+UNION ALL
+SELECT 
+STRUCT( 
+    STRUCT("93031-3" as code, "In the past year, have you or any family members you live with been unable to get any of the following when it was really needed?" as display) as question, 
+    7 as noOfAnswers,
+    [
+        STRUCT("LA30125-1" AS code,"Food" as display),
+        STRUCT("LA30126-9" AS code,"Clothing" as display),
+        STRUCT("LA30124-4" AS code,"Utilities" as display),
+        STRUCT("LA30127-7" AS code,"Child care" as display),
+        STRUCT("LA30128-5" AS code,"Medicine or Any Health Care (Medical, Dental, Mental Health, Vision)" as display),
+        STRUCT("LA30129-3" AS code,"Phone" as display),
+        STRUCT("LA30122-8" AS code,"I choose not to answer this question" as display)
+    ] as answers
+) as questionSet
+UNION ALL
+SELECT 
+STRUCT( 
+    STRUCT("93030-5" as code, "Has lack of transportation kept you from medical appointments, meetings, work, or from getting things needed for daily living?" as display) as question, 
+    4 as noOfAnswers,
+    [
+        STRUCT("LA30133-5" AS code,"Yes, it has kept me from medical appointments or from getting my medications" as display),
+        STRUCT("LA30134-3" AS code,"Yes, it has kept me from non-medical meetings, appointments, work, or from getting things that I need" as display),
+        STRUCT("LA32-8" AS code,"No" as display),
+        STRUCT("LA30257-2" AS code,"Patient unable to respond" as display)
+    ] as answers
+) as questionSet
+```
+*The end goal in this data prep is to have a single Patient record that contains the demographics data like age, race, sex and the SDOH factors. The LOINC code for the question like [93031-3](https://loinc.org/93031-3/) will be used as a column name and the answer/observation_value_code like 'LA30125-1' will be used as the column value on the Patient record.* . If you really want to build the data the real way, you can use this [Form Builder for FHIR Questionnaire](https://lhcformbuilder.nlm.nih.gov/) that generates Questionnaire for LOINC panels like [Money and resources [PRAPARE]](https://loinc.org/93041-2/).
 
-All your files and folders are presented as a tree in the file explorer. You can switch from one to another by clicking a file in the tree.
-
-## Rename a file
-
-You can rename the current file by clicking the file name in the navigation bar or by clicking the **Rename** button in the file explorer.
-
-## Delete a file
-
-You can delete the current file by clicking the **Remove** button in the file explorer. The file will be moved into the **Trash** folder and automatically deleted after 7 days of inactivity.
-
-## Export a file
-
-You can export the current file by clicking **Export to disk** in the menu. You can choose to export the file as plain Markdown, as HTML using a Handlebars template or as a PDF.
-
-
-# Synchronization
-
-Synchronization is one of the biggest features of StackEdit. It enables you to synchronize any file in your workspace with other files stored in your **Google Drive**, your **Dropbox** and your **GitHub** accounts. This allows you to keep writing on other devices, collaborate with people you share the file with, integrate easily into your workflow... The synchronization mechanism takes place every minute in the background, downloading, merging, and uploading file modifications.
-
-There are two types of synchronization and they can complement each other:
-
-- The workspace synchronization will sync all your files, folders and settings automatically. This will allow you to fetch your workspace on any other device.
-	> To start syncing your workspace, just sign in with Google in the menu.
-
-- The file synchronization will keep one file of the workspace synced with one or multiple files in **Google Drive**, **Dropbox** or **GitHub**.
-	> Before starting to sync files, you must link an account in the **Synchronize** sub-menu.
-
-## Open a file
-
-You can open a file from **Google Drive**, **Dropbox** or **GitHub** by opening the **Synchronize** sub-menu and clicking **Open from**. Once opened in the workspace, any modification in the file will be automatically synced.
-
-## Save a file
-
-You can save any file of the workspace to **Google Drive**, **Dropbox** or **GitHub** by opening the **Synchronize** sub-menu and clicking **Save on**. Even if a file in the workspace is already synced, you can save it to another location. StackEdit can sync one file with multiple locations and accounts.
-
-## Synchronize a file
-
-Once your file is linked to a synchronized location, StackEdit will periodically synchronize it by downloading/uploading any modification. A merge will be performed if necessary and conflicts will be resolved.
-
-If you just have modified your file and you want to force syncing, click the **Synchronize now** button in the navigation bar.
-
-> **Note:** The **Synchronize now** button is disabled if you have no file to synchronize.
-
-## Manage file synchronization
-
-Since one file can be synced with multiple locations, you can list and manage synchronized locations by clicking **File synchronization** in the **Synchronize** sub-menu. This allows you to list and remove synchronized locations that are linked to your file.
-
-
-# Publication
-
-Publishing in StackEdit makes it simple for you to publish online your files. Once you're happy with a file, you can publish it to different hosting platforms like **Blogger**, **Dropbox**, **Gist**, **GitHub**, **Google Drive**, **WordPress** and **Zendesk**. With [Handlebars templates](http://handlebarsjs.com/), you have full control over what you export.
-
-> Before starting to publish, you must link an account in the **Publish** sub-menu.
-
-## Publish a File
-
-You can publish your file by opening the **Publish** sub-menu and by clicking **Publish to**. For some locations, you can choose between the following formats:
-
-- Markdown: publish the Markdown text on a website that can interpret it (**GitHub** for instance),
-- HTML: publish the file converted to HTML via a Handlebars template (on a blog for example).
-
-## Update a publication
-
-After publishing, StackEdit keeps your file linked to that publication which makes it easy for you to re-publish it. Once you have modified your file and you want to update your publication, click on the **Publish now** button in the navigation bar.
-
-> **Note:** The **Publish now** button is disabled if your file has not been published yet.
-
-## Manage file publication
-
-Since one file can be published to multiple locations, you can list and manage publish locations by clicking **File publication** in the **Publish** sub-menu. This allows you to list and remove publication locations that are linked to your file.
-
-
-# Markdown extensions
-
-StackEdit extends the standard Markdown syntax by adding extra **Markdown extensions**, providing you with some nice features.
-
-> **ProTip:** You can disable any **Markdown extension** in the **File properties** dialog.
-
-
-## SmartyPants
-
-SmartyPants converts ASCII punctuation characters into "smart" typographic punctuation HTML entities. For example:
-
-|                |ASCII                          |HTML                         |
-|----------------|-------------------------------|-----------------------------|
-|Single backticks|`'Isn't this fun?'`            |'Isn't this fun?'            |
-|Quotes          |`"Isn't this fun?"`            |"Isn't this fun?"            |
-|Dashes          |`-- is en-dash, --- is em-dash`|-- is en-dash, --- is em-dash|
-
-
-## KaTeX
-
-You can render LaTeX mathematical expressions using [KaTeX](https://khan.github.io/KaTeX/):
-
-The *Gamma function* satisfying $\Gamma(n) = (n-1)!\quad\forall n\in\mathbb N$ is via the Euler integral
-
-$$
-\Gamma(z) = \int_0^\infty t^{z-1}e^{-t}dt\,.
-$$
-
-> You can find more information about **LaTeX** mathematical expressions [here](http://meta.math.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference).
-
-
-## UML diagrams
-
-You can render UML diagrams using [Mermaid](https://mermaidjs.github.io/). For example, this will produce a sequence diagram:
-
-```mermaid
-sequenceDiagram
-Alice ->> Bob: Hello Bob, how are you?
-Bob-->>John: How about you John?
-Bob--x Alice: I am good thanks!
-Bob-x John: I am good thanks!
-Note right of John: Bob thinks a long<br/>long time, so long<br/>that the text does<br/>not fit on a row.
-
-Bob-->Alice: Checking with John...
-Alice->John: Yes... John, how are you?
+For now, let's just cook up some data like this:
+```
+CREATE OR REPLACE VIEW 
+    `sdohml.checked_patients` AS
+SELECT 
+    count(*) count,
+    IFNULL(P.address[SAFE_OFFSET(0)].postalCode, "") AS zip,
+    sdohml.calculateAge(PARSE_DATE('%Y-%m-%d',  P.birthDate)) age, 
+    P.gender sex,
+    P.us_core_race.text.value.string race,
+    P.maritalStatus.coding[SAFE_OFFSET(0)].code maritalStatus,
+    (select questionSet.answers[SAFE_OFFSET(CAST(round(rand() * (questionSet.noOfAnswers - 1)) as INT64))].code  from sdohml.sdoh_questions where  questionSet.question.code = "82589-3") as education_82589_3,
+    (select questionSet.answers[SAFE_OFFSET(CAST(round(rand() * (questionSet.noOfAnswers - 1)) as INT64))].code  from sdohml.sdoh_questions where  questionSet.question.code = "67875-5") as employment_67875_5,
+    (select questionSet.answers[SAFE_OFFSET(CAST(round(rand() * (questionSet.noOfAnswers - 1)) as INT64))].code  from sdohml.sdoh_questions where  questionSet.question.code = "63058-2") as annual_income_63058_2,
+    (select questionSet.answers[SAFE_OFFSET(CAST(round(rand() * (questionSet.noOfAnswers - 1)) as INT64))].code  from sdohml.sdoh_questions where  questionSet.question.code = "93031-3") as prapare_survey_93031_3,
+    (select questionSet.answers[SAFE_OFFSET(CAST(round(rand() * (questionSet.noOfAnswers - 1)) as INT64))].code  from sdohml.sdoh_questions where  questionSet.question.code = "93030-5") as transportation_93030_5,
+    sdohml.prediabeticcheck(coding.code) prediabetic
+FROM 
+    bigquery-public-data.fhir_synthea.condition  C, 
+    UNNEST(C.code.coding) coding
+JOIN 
+    bigquery-public-data.fhir_synthea.patient P
+ON 
+    C.subject.patientId = P.id
+WHERE 
+    C.verificationstatus = 'confirmed' AND
+    coding.system = 'http://snomed.info/sct' 
+GROUP BY
+    zip,
+    age,
+    sex,
+    maritalStatus,
+    race,
+    education_82589_3 ,
+    employment_67875_5,
+    annual_income_63058_2,
+    prapare_survey_93031_3,
+    transportation_93030_5,
+    prediabetic
 ```
 
-And this will produce a flow chart:
 
-```mermaid
-graph LR
-A[Square Rect] -- Link text --> B((Circle))
-A --> C(Round Rect)
-B --> D{Rhombus}
-C --> D
-```
+
+
+What data 
+Gravity - Questiooantire - Onbserver
+manufatcure datta
+
+## Preparing Data for the model
+How it is combined with patinet data 
+Views for training, evaluation and predition
+
+## Building the model
+
+## Evaluating the model
+
+## Prediction
+
+
+closing notes: not accurate.. needs more sampleing , realstinc questionnaire data
