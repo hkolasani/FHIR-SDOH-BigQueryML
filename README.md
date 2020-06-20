@@ -128,7 +128,7 @@ STRUCT(
     ] as answers
 ) as questionSet
 ```
-*The end goal in this data prep is to have a single Patient record that contains the demographics data like age, race, sex and the SDOH factors. The LOINC code for the question like [93031-3](https://loinc.org/93031-3/) will be used as a column name and the answer/observation_value_code like 'LA30125-1' will be used as the column value on the Patient record.* 
+The end goal in this data prep is to have a single Patient record that contains the demographics data like age, race, sex and the SDOH factors. The LOINC code for the question like [93031-3](https://loinc.org/93031-3/) will be used as a column name and the answer/observation_value_code like 'LA30125-1' will be used as the column value on the Patient record.
 
 If you really want to build the data the right way, you can use this [Form Builder for FHIR Questionnaire](https://lhcformbuilder.nlm.nih.gov/) that generates Questionnaire for LOINC panels like [Money and resources [PRAPARE]](https://loinc.org/93041-2/).
 
@@ -172,7 +172,11 @@ GROUP BY
     transportation_93030_5,
     prediabetic
 ```
+The above would result in data like this:
+
 ![GitHub Logo](/images/sampledata.png)
+
+
 What data 
 Gravity - Questiooantire - Onbserver
 manufatcure datta
