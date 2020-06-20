@@ -1,5 +1,5 @@
 ## Predicting Prediabetes with BigQuery ML using FHIR and SDOH data
-This repo mainly contains a [jupyter notebook](/SDOH-ML.ipynb) that builds a [Binary Logistic Regression](https://towardsdatascience.com/implementing-binary-logistic-regression-in-r-7d802a9d98fe) model using BIGQueryML to predict diabetes for a population of FHIR patient data that is augmented by SDOH factors such as food and transportation. 
+This repo mainly contains a [jupyter notebook](/SDOH-ML.ipynb) that builds a [Binary Logistic Regression](https://towardsdatascience.com/implementing-binary-logistic-regression-in-r-7d802a9d98fe) model using BigQueryML to predict diabetes for a population of FHIR patient data that is augmented by SDOH factors such as food and transportation. 
 
 ## BigQuery ML and Binary Logistic Regression Model
 You can use the binary logistic regression model to predict whether a value falls into one of two categories. A common problem in machine learning is to classify data into one of two types, known as labels. In this case, we may want to predict whether a given patient will be prediabetic or not , based on other information about that patient. The two labels will be "prediabetic" and "not prediabetic".  The input dataset needs to be built such that one column represents the label. 
