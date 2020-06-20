@@ -173,23 +173,95 @@ GROUP BY
     prediabetic
 ```
 The above would result in data like this:
-
 ![GitHub Logo](/images/sampledata.png)
-
-
-What data 
-Gravity - Questiooantire - Onbserver
-manufatcure datta
-
+	
 ## Preparing Data for the model
-How it is combined with patinet data 
-Views for training, evaluation and predition
-
+The above generated data can be further sliced  for training, evaluating and predicting:
+```
+CREATE OR REPLACE VIEW
+  `sdohml.input_view` AS
+SELECT
+    zip,
+    age,
+    sex,
+    maritalStatus,
+    race,
+    education_82589_3 ,
+    employment_67875_5,
+    annual_income_63058_2,
+    prapare_survey_93031_3,
+    transportation_93030_5,
+    prediabetic,
+    CASE
+        WHEN count > 1 and count  < 3  THEN 'training'
+        WHEN count > 5 and count < 7   THEN 'evaluation'
+        WHEN count > 3 and count < 5   THEN 'prediction'
+    END AS dataframe
+FROM
+  `sdohml.checked_patients`
+```
 ## Building the model
+Now that we have prepped the training data, the next step is to create the  [logistic regression model](https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create#model_option_list)  using the data. As you can see the column 'prediabetic' is the label column that would be predicted. 
+```
+CREATE OR REPLACE MODEL
+  `sdohml.diabetes_sdoh_model`
+OPTIONS
+  ( model_type='LOGISTIC_REG',
+    auto_class_weights=TRUE,
+    data_split_method='NO_SPLIT',
+    input_label_cols=['prediabetic'],
+    max_iterations=15) AS
+SELECT
+  *
+FROM
+  `sdohml.input_view`
+WHERE
+  dataframe = 'training'
+```
+
+You can create and train a logistic regression model using the  [`CREATE MODEL`](https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create)  statement with the option  `'LOGISTIC_REG'`. The following query uses a  `CREATE MODEL`  statement to train a new binary logistic regression model on the view from the previous query.
 
 ## Evaluating the model
+After creating the model, evaluate the performance of the model using the  [`ML.EVALUATE`](https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate)  function. The  `ML.EVALUATE`  function evaluates the predicted values against the actual data.
+
+The query to evaluate the model is as follows:
+```
+SELECT
+  *
+FROM
+  ML.EVALUATE (MODEL `sdohml.diabetes_sdoh_model`,
+    (
+    SELECT
+      *
+    FROM
+      `sdohml.input_view`
+    WHERE
+      dataframe = 'evaluation'
+    )
+  )
+```
+The above would result in data like this:
+![GitHub Logo](/images/evaluation.png)
+The accuracy of the model describes the ratio of correctly predicted values to total predictions. Please note that we generated SDOH data in a random manner which may not produce accurate predictions.  The idea of this is to show the whole pipeline of data prep (with SDOH) and using BigQuery ML. 
 
 ## Prediction
-
+The following query predicts prediabetes for patients.
+```
+SELECT
+  *
+FROM
+  ML.PREDICT (MODEL `sdohml.diabetes_sdoh_model`,
+    (
+    SELECT
+      *
+    FROM
+      `sdohml.input_view`
+    WHERE
+      dataframe = 'prediction'
+     )
+  )
+```
+Below are sample results from above prediction run. 
+![GitHub Logo](/images/prediction.png)
 
 closing notes: not accurate.. needs more sampleing , realstinc questionnaire data
