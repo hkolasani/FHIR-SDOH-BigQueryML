@@ -9,7 +9,7 @@ You can use the binary logistic regression model to predict whether a value fall
 ## Patient Data - Synthea FHIR 
 The primary dataset that's used in this exercise is from [Synthea Synthetic Patient FHIR data](https://synthetichealth.github.io/synthea/) which contains around ~1M Patient resources and their related Conditions and Observations. This data is available in BigQuery as a public data set. 
 
-The Patient data is joined with Conditions data to append the column "prediabetic" (true/false) along with Patient's age, sex, rece, marital status and zip.
+The Patient data is joined with Conditions data to append the column "prediabetic" (true/false) along with Patient's age, sex, race, marital status and zip.
 ```
 SELECT 
       IFNULL(P.address[SAFE_OFFSET(0)].postalCode, "") AS zip,
@@ -130,7 +130,7 @@ STRUCT(
 ```
 The end goal in this data prep is to have a single Patient record that contains the demographics data like age, race, sex and the SDOH factors. The LOINC code for the question like [93031-3](https://loinc.org/93031-3/) will be used as a column name and the answer/observation_value_code like 'LA30125-1' will be used as the column value on the Patient record.
 
-If you really want to build the data the right way, you can use this [Form Builder for FHIR Questionnaire](https://lhcformbuilder.nlm.nih.gov/) that generates Questionnaire for LOINC panels like [Money and resources [PRAPARE]](https://loinc.org/93041-2/). Here is a sample [Questionnaire](/Questionnaire%20-%20Money%20and%20resources%20%5B93041-2%5D.json) generated and used as the basis for the SDOH factors in this.
+If you really want to build the data the right way, you can use this [Form Builder for FHIR Questionnaire](https://lhcformbuilder.nlm.nih.gov/) that generates Questionnaire for LOINC panels like [Money and resources [PRAPARE]](https://loinc.org/93041-2/). Here is a  [sample Questionnaire](/Questionnaire%20-%20Money%20and%20resources%20%5B93041-2%5D.json) generated and used as the basis for the SDOH factors in this.
 
 For now, let's just cook up some data like this:
 ```
@@ -274,5 +274,5 @@ Here are different steps in building this:
 
 As mentioned above, please note that we generated SDOH data in a random manner which may not produce accurate predictions.  The idea of this is to show the whole pipeline of data prep (with SDOH) and using BigQuery ML.
 
-Hope this will be helpful for BigQUery ML enthusiasts who wants to leverage the technology to solve some of lingering problems in Healthcare!
+Hope this will be helpful for BigQuery ML enthusiasts who wants to leverage the technology to solve some of lingering problems in Healthcare!
 
