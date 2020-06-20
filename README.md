@@ -219,7 +219,7 @@ WHERE
   dataframe = 'training'
 ```
 
-You can create and train a logistic regression model using the  [`CREATE MODEL`](https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create)  statement with the option  `'LOGISTIC_REG'`. The following query uses a  `CREATE MODEL`  statement to train a new binary logistic regression model on the view from the previous query.
+You can create and train a logistic regression model using the  [`CREATE MODEL`](https://cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create)  statement with the option  `'LOGISTIC_REG'`. 
 
 ## Evaluating the model
 After creating the model, evaluate the performance of the model using the  [`ML.EVALUATE`](https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate)  function. The  `ML.EVALUATE`  function evaluates the predicted values against the actual data.
@@ -266,7 +266,7 @@ whola! Below are sample results from above prediction run.
 ## Summary
 Here are different steps in building this: 
 
- 1. Identify and prepare the data source: [Synthea Synthetic Patient FHIR data](https://synthetichealth.github.io/synthea/) 
+ 1. Identify and prepare the data source: [Synthea Synthetic Patient FHIR data](https://synthetichealth.github.io/synthea/), which is also available as a public dataset that you can add to BigQuery. 
  2. Enrich Patient data with SDOH factors by leveraging Gravity/LOINC questionnaire and manufactured Observations. [Money and resources [PRAPARE]](https://loinc.org/93041-2/)
  3. Create and train a Logistic Regression model with BigQuery ML
  4. Evaluate the model using a subset of the generated data
